@@ -1,0 +1,15 @@
+:root[data-theme="synth"] {
+  --bg: #05010a;
+  --bg-alt: #0b0414;
+  --grid: rgba(255, 0, 153, 0.08);
+  --panel: #14021f;
+  --panel-border: #361045;
+  --panel-accent: #1f0630;
+  --text: #fdf0ff;
+  --muted: #c9a7e5;
+  --accent: #ff2bd4;
+  --accent-strong: #00f0ff;
+  --success: #7cffc1;
+  --danger: #ff5f9e;
+  --warning: #ffd76b;
+}

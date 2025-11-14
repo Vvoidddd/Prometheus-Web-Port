@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="terminal" data-layout="classic">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,6 +11,24 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="themes/theme-terminal.css" />
+    <link rel="stylesheet" href="themes/theme-vapor.css" />
+    <link rel="stylesheet" href="themes/theme-paper.css" />
+    <link rel="stylesheet" href="themes/theme-synth.css" />
+    <link rel="stylesheet" href="themes/theme-ocean.css" />
+    <link rel="stylesheet" href="themes/theme-carbon.css" />
+    <script>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("prom-web-theme");
+          const savedLayout = localStorage.getItem("prom-web-layout");
+          if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+          if (savedLayout) document.documentElement.dataset.layout = savedLayout;
+        } catch {
+          /* ignore */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="scanlines" aria-hidden="true"></div>
@@ -20,6 +38,7 @@
       <div class="masthead__links">
         <a href="./">Back to console</a>
         <a href="https://github.com/Vvoidddd/Prometheus-Web-Port" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="settings.html">Settings</a>
         <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">Prometheus repo</a>
       </div>
     </header>
@@ -43,11 +62,11 @@
           <li><strong>Temp files</strong> - `/api/obfuscate` writes the source to a random folder under your OS temp directory, calls `lua ./Prometheus-master/cli.lua`, reads the generated output, then deletes the folder.</li>
           <li><strong>Logging</strong> - Stdout/stderr from the Prometheus process stream back to the browser untouched.</li>
           <li><strong>Updates</strong> - Update endpoints fetch version data from GitHub, download zips into `./updates`, and replace `./Prometheus-master` when asked.</li>
-          <li><strong>Version tracking</strong> - The UI reads `version.txt` (currently 1.4) and `prometheus-version.txt` locally, while remote comparisons use <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with a GitHub HTML fallback) and the Prometheus tags page.</li>
+          <li><strong>Version tracking</strong> - The UI reads `version.txt` (currently 1.5) and `prometheus-version.txt` locally, while remote comparisons use <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with a GitHub HTML fallback) and the Prometheus tags page.</li>
           <li><strong>No hidden services</strong> - There are no outbound requests besides the explicit GitHub checks above.</li>
         </ul>
 
-        <pre class="code-block"><code>// server.js (excerpt)
+        <pre class="code-block"><code data-highlight="code">// server.js (excerpt)
 app.post("/api/obfuscate", async (req, res) => {
   const payload = sanitize(req.body);
   const result = await runPrometheus(payload);
@@ -85,7 +104,7 @@ async function runPrometheus({ source, preset, luaVersion, prettyPrint }) {
       <section class="card">
         <h2>Update mechanics</h2>
         <p>
-          <strong>Version 1.4</strong> is stored in <code>version.txt</code>. The UI hits
+          <strong>Version 1.5</strong> is stored in <code>version.txt</code>. The UI hits
           <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with an automatic fallback to the HTML view) whenever you load the page. If a newer version exists, you can download the latest source zip directly from GitHub without leaving the UI.
         </p>
         <p>
@@ -98,7 +117,7 @@ async function runPrometheus({ source, preset, luaVersion, prettyPrint }) {
           <code>./updates</code> for you to inspect.
         </p>
 
-        <pre class="code-block"><code>// public/app.js (version panel)
+        <pre class="code-block"><code data-highlight="code">// public/app.js (version panel)
 async function refreshVersionPanel() {
   const res = await fetch("/api/check-updates");
   const data = await res.json();
@@ -136,7 +155,7 @@ async function handlePromUpdate() {
         </ul>
         <p>Use the “Reset session” button to clear every saved value instantly.</p>
 
-        <pre class="code-block"><code>// public/app.js (session logic)
+        <pre class="code-block"><code data-highlight="code">// public/app.js (session logic)
 const SESSION_KEY = "prometheus-web-port.session";
 
 function getSessionPayload() {
@@ -222,7 +241,18 @@ function restoreSession() {
     <footer class="footer">
       <p>Stay local. Stay transparent.</p>
     </footer>
+    <script src="highlight.js"></script>
     <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (!window.HighlightEngine) {
+          return;
+        }
+        const blocks = document.querySelectorAll('[data-highlight="code"]');
+        blocks.forEach((block) => {
+          block.innerHTML = window.HighlightEngine.highlightCode(block.textContent);
+        });
+      });
+
       (function () {
         const button = document.getElementById("clearCacheBtn");
         const statusEl = document.getElementById("clearCacheStatus");

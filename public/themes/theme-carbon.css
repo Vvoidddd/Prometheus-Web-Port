@@ -1,0 +1,15 @@
+:root[data-theme="carbon"] {
+  --bg: #070707;
+  --bg-alt: #0f1012;
+  --grid: rgba(255, 255, 255, 0.02);
+  --panel: #101214;
+  --panel-border: #2a2d34;
+  --panel-accent: #171a1f;
+  --text: #f2f4f8;
+  --muted: #9aa0ab;
+  --accent: #4fd1c5;
+  --accent-strong: #fbd38d;
+  --success: #9ae6b4;
+  --danger: #fc8181;
+  --warning: #f6ad55;
+}

@@ -1,0 +1,15 @@
+:root[data-theme="vapor"] {
+  --bg: #12081b;
+  --bg-alt: #1c0f2a;
+  --grid: rgba(255, 255, 255, 0.07);
+  --panel: #1a0d29;
+  --panel-border: #3c2458;
+  --panel-accent: #241137;
+  --text: #f8e9ff;
+  --muted: #c3abd8;
+  --accent: #ff57d2;
+  --accent-strong: #7de1ff;
+  --success: #7cf7ff;
+  --danger: #ff6b94;
+  --warning: #ffd37d;
+}

@@ -1,0 +1,15 @@
+:root[data-theme="ocean"] {
+  --bg: #01141f;
+  --bg-alt: #02273a;
+  --grid: rgba(0, 168, 255, 0.07);
+  --panel: #03293e;
+  --panel-border: #084765;
+  --panel-accent: #053951;
+  --text: #e3f7ff;
+  --muted: #9bc7da;
+  --accent: #17d5ff;
+  --accent-strong: #6ef0c1;
+  --success: #55f7d0;
+  --danger: #ff708a;
+  --warning: #ffd480;
+}

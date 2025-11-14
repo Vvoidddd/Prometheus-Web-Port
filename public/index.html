@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="terminal" data-layout="classic">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,6 +11,24 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="themes/theme-terminal.css" />
+    <link rel="stylesheet" href="themes/theme-vapor.css" />
+    <link rel="stylesheet" href="themes/theme-paper.css" />
+    <link rel="stylesheet" href="themes/theme-synth.css" />
+    <link rel="stylesheet" href="themes/theme-ocean.css" />
+    <link rel="stylesheet" href="themes/theme-carbon.css" />
+    <script>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("prom-web-theme");
+          const savedLayout = localStorage.getItem("prom-web-layout");
+          if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+          if (savedLayout) document.documentElement.dataset.layout = savedLayout;
+        } catch {
+          /* ignore */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="scanlines" aria-hidden="true"></div>
@@ -21,6 +39,7 @@
       <div class="masthead__links">
         <a href="https://github.com/Vvoidddd/Prometheus-Web-Port" target="_blank" rel="noreferrer">GitHub</a>
         <a href="dev-info.html">Dev notes</a>
+        <a href="settings.html">Settings</a>
         <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">Prometheus repo</a>
       </div>
     </header>
@@ -192,6 +211,8 @@
       <p>Prometheus Web Port · blackline terminal edition · 2026</p>
     </footer>
 
+    <script src="theme.js" defer></script>
+    <script src="highlight.js" defer></script>
     <script src="app.js" defer></script>
   </body>
 </html>

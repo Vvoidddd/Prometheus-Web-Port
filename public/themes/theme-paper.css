@@ -1,0 +1,15 @@
+:root[data-theme="paper"] {
+  --bg: #f5f6fb;
+  --bg-alt: #ffffff;
+  --grid: rgba(0, 0, 0, 0.05);
+  --panel: #ffffff;
+  --panel-border: #d8dfeb;
+  --panel-accent: #f0f2f8;
+  --text: #1f2430;
+  --muted: #5f6b7c;
+  --accent: #0066ff;
+  --accent-strong: #ff7a18;
+  --success: #0f9d58;
+  --danger: #c0392b;
+  --warning: #f4b400;
+}

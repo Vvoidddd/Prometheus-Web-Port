@@ -1,0 +1,15 @@
+:root[data-theme="terminal"] {
+  --bg: #020202;
+  --bg-alt: #0c0c0c;
+  --grid: rgba(255, 255, 255, 0.04);
+  --panel: #050505;
+  --panel-border: #1a1a1a;
+  --panel-accent: #111;
+  --text: #f1f5ff;
+  --muted: #8a94ab;
+  --accent: #16ffe3;
+  --accent-strong: #ffb347;
+  --success: #36ff9b;
+  --danger: #ff6b81;
+  --warning: #ffb347;
+}

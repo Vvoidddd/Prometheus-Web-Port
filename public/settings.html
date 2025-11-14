@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" data-theme="terminal" data-layout="classic">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prometheus Web Port · Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="themes/theme-terminal.css" />
+    <link rel="stylesheet" href="themes/theme-vapor.css" />
+    <link rel="stylesheet" href="themes/theme-paper.css" />
+    <link rel="stylesheet" href="themes/theme-synth.css" />
+    <link rel="stylesheet" href="themes/theme-ocean.css" />
+    <link rel="stylesheet" href="themes/theme-carbon.css" />
+    <script>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("prom-web-theme");
+          const savedLayout = localStorage.getItem("prom-web-layout");
+          if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+          if (savedLayout) document.documentElement.dataset.layout = savedLayout;
+        } catch {
+          /* ignore */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="scanlines" aria-hidden="true"></div>
+    <header class="masthead">
+      <div class="masthead__title">Prometheus Web Port</div>
+      <p class="masthead__subtitle">Customize your local console experience.</p>
+      <div class="masthead__links">
+        <a href="./">Back to console</a>
+        <a href="dev-info.html">Dev notes</a>
+        <a href="https://github.com/Vvoidddd/Prometheus-Web-Port" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </header>
+
+    <main class="site-shell">
+      <section class="card settings-card">
+        <div class="update-panel__header">
+          <h2>Appearance</h2>
+          <p>Pick a theme for the entire Web Port UI. Your choice persists in local storage.</p>
+        </div>
+        <div class="theme-picker">
+          <label for="settingsThemeSelect">Theme</label>
+          <select id="settingsThemeSelect"></select>
+        </div>
+        <div class="theme-preview" id="themePreview">
+          <span class="theme-preview__eyebrow">preview</span>
+          <h3>Terminal console</h3>
+          <p>The editor, cards, and log windows update instantly.</p>
+        </div>
+        <p class="update-status" id="themeSaveStatus">Select a theme to begin.</p>
+      </section>
+
+      <section class="card settings-card">
+        <div class="update-panel__header">
+          <h2>Layout</h2>
+          <p>Rearrange the grids and gaps to match your monitor and workflow.</p>
+        </div>
+        <div class="theme-picker">
+          <label for="settingsLayoutSelect">Layout</label>
+          <select id="settingsLayoutSelect"></select>
+        </div>
+        <div class="theme-preview" id="layoutPreview">
+          <span class="theme-preview__eyebrow">preview</span>
+          <h3>Classic Grid</h3>
+          <p>Balanced cards with the default spacing.</p>
+        </div>
+        <p class="update-status" id="layoutSaveStatus">Pick a layout preset to preview.</p>
+      </section>
+
+      <section class="card">
+        <h2>FAQ</h2>
+        <ul>
+          <li>Settings live locally; nothing syncs off-device.</li>
+          <li>Changing the theme or layout updates the console and dev notes pages.</li>
+          <li>Storage keys: <code>prom-web-theme</code> and <code>prom-web-layout</code>. Clear them to reset.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Prometheus Web Port · Settings</p>
+    </footer>
+
+    <script src="theme.js"></script>
+    <script src="settings.js" defer></script>
+  </body>
+</html>
