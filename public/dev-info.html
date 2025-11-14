@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Void - Dev Notes & Privacy</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>Dev Notes & Transparency</h1>
+        <p>
+          Built by <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">void</a>.
+          This page breaks down exactly what happens when you click <em>Obfuscate</em> and why no information is taken.
+        </p>
+        <div class="hero-links">
+          <a href="./">Back to the obfuscator</a>
+          <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">Prometheus source</a>
+        </div>
+      </header>
+
+      <section>
+        <h2>How the tool works</h2>
+        <ol>
+          <li>You paste Lua code locally inside your browser.</li>
+          <li>The backend (Node + Express) receives your snippet over HTTPS on your own machine.</li>
+          <li>
+            The server writes the snippet to a temporary file, runs
+            <code>lua ./Prometheus-master/cli.lua</code> with your selected preset, and waits for Prometheus to finish.
+          </li>
+          <li>The obfuscated output is streamed back and displayed instantly.</li>
+          <li>The temporary directory is deleted right after the response is sent.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Privacy stance</h2>
+        <p>
+          This project does <strong>not</strong> log, upload, or retain your scripts. Everything happens on the same machine you run the server on.
+          There are no analytics, trackers, remote calls, or hidden services - just Prometheus running locally.
+        </p>
+        <p>
+          If you need to audit the behavior, the entire stack lives in this folder.
+          Skim <code>server.js</code> to see how Express spawns Prometheus and removes the temporary files.
+        </p>
+      </section>
+
+      <section>
+        <h2>Credits</h2>
+        <ul>
+          <li>
+            UI/UX and integration by <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">void</a>.
+          </li>
+          <li>
+            Obfuscation logic by <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">
+              Prometheus (Elias Oelschner)
+            </a>.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Questions?</h2>
+        <p>
+          Reach out via GitHub at
+          <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">@Vvoidddd</a>.
+          Suggestions, bug reports, or security concerns are always welcome.
+        </p>
+      </section>
+
+      <footer>
+        <p>&copy; <span id="year"></span> void. Stay curious, stay transparent.</p>
+      </footer>
+    </main>
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prometheus Web Obfuscator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="backlayer">
+      <div class="backlayer__noise"></div>
+      <div class="backlayer__grid"></div>
+      <div class="backlayer__glow backlayer__glow--one"></div>
+      <div class="backlayer__glow backlayer__glow--two"></div>
+    </div>
+
+    <header class="frame">
+      <div class="mark">
+        <span class="mark__pulse"></span>
+        <span class="mark__title">Prometheus</span>
+        <span class="mark__meta">local obfuscation cell</span>
+      </div>
+      <nav class="frame__links">
+        <a href="#workspace">Workspace</a>
+        <a href="#logbook">Logbook</a>
+        <a href="dev-info.html">Transparency</a>
+      </nav>
+      <div class="badge badge--pill">xeno build / 2026</div>
+    </header>
+
+    <main class="shell">
+      <section class="hero tile tile--gradient">
+        <div class="hero__text">
+          <p class="micro">xeno.surface / offline</p>
+          <h1>Blackglass interface for the Prometheus obfuscator.</h1>
+          <p class="hero__lead">
+            Craft presets, stream the CLI, and push encrypted Lua without touching the cloud. This is a zero-noise,
+            xeno-inspired terminal built purely for local workflows.
+          </p>
+          <div class="hero__actions">
+            <button class="btn btn--primary" onclick="document.getElementById('source').focus();">open console</button>
+            <a class="btn btn--ghost" href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer"
+              >prometheus repo</a
+            >
+          </div>
+        </div>
+        <div class="hero__stats">
+          <div>
+            <p>files this session</p>
+            <span id="statFiles">0</span>
+          </div>
+          <div>
+            <p>lines processed</p>
+            <span id="statLines">0</span>
+          </div>
+          <div>
+            <p>engine</p>
+            <span class="accent">Prometheus CLI</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid cards">
+        <article class="card-line">
+          <p class="micro">preset spectrum</p>
+          <h3>Minify > Weak > Medium > Strong</h3>
+          <p>Same switches as the CLI with contextual hints for Lua targets.</p>
+        </article>
+        <article class="card-line">
+          <p class="micro">privacy posture</p>
+          <h3>Host-only compute</h3>
+          <p>No telemetry, temp directories shredded after each run.</p>
+        </article>
+        <article class="card-line">
+          <p class="micro">observability</p>
+          <h3>Live log mirroring</h3>
+          <p>Stdout/stderr printed into the UI for full traceability.</p>
+        </article>
+      </section>
+
+      <section id="workspace" class="workspace split">
+        <div class="pane">
+          <header class="pane__head">
+            <div>
+              <p class="micro">input runway</p>
+              <h2>Configure + paste</h2>
+            </div>
+            <span class="badge">lua in</span>
+          </header>
+
+          <div class="pane__controls">
+            <label class="control">
+              <span>Preset</span>
+              <select id="preset"></select>
+            </label>
+            <label class="control">
+              <span>Lua version</span>
+              <select id="luaVersion"></select>
+            </label>
+            <label class="control control--toggle">
+              <span>Pretty print</span>
+              <input type="checkbox" id="prettyPrint" />
+            </label>
+          </div>
+
+          <div class="editor">
+            <div class="editor__head">
+              <span>Lua source</span>
+              <button id="sampleBtn" type="button" class="chip chip--small">Load sample</button>
+            </div>
+            <div class="editor__surface">
+              <textarea id="source" spellcheck="false" placeholder="-- drop Lua here"></textarea>
+              <pre aria-hidden="true" class="code-highlight"><code id="sourceHighlight"></code></pre>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="obfuscateBtn" type="button" class="btn btn--primary">obfuscate</button>
+          </div>
+        </div>
+
+        <div class="pane">
+          <header class="pane__head">
+            <div>
+              <p class="micro">output vault</p>
+              <h2>Obfuscated payload</h2>
+            </div>
+            <span class="badge badge--accent">lua out</span>
+          </header>
+
+          <div class="editor">
+            <div class="editor__head">
+              <span>Obfuscated Lua</span>
+              <div class="editor__actions">
+                <button id="copyBtn" type="button" class="chip chip--small">copy</button>
+                <button id="downloadBtn" type="button" class="chip chip--small">download</button>
+              </div>
+            </div>
+            <div class="editor__surface">
+              <textarea id="result" spellcheck="false" readonly></textarea>
+              <pre aria-hidden="true" class="code-highlight"><code id="resultHighlight"></code></pre>
+            </div>
+          </div>
+
+          <div id="logbook" class="log tile">
+            <header class="pane__head compact">
+              <div>
+                <p class="micro">engine logbook</p>
+                <h3>Prometheus feed</h3>
+              </div>
+            </header>
+            <pre id="logWindow">waiting for first run...</pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="details tile">
+        <article>
+          <h3>API surface</h3>
+          <ul>
+            <li><strong>POST /api/obfuscate</strong> - run Prometheus with your selection.</li>
+            <li><strong>GET /api/presets</strong> - pull presets + Lua targets.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Execution chain</h3>
+          <ul>
+            <li>Snippets land in a temp dir for the run, then get shredded.</li>
+            <li><code>lua ./Prometheus-master/cli.lua</code> executes with your flags.</li>
+            <li>Stdout/stderr stream into the logbook in realtime.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Credits</h3>
+          <ul>
+            <li>Interface build by <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">void</a>.</li>
+            <li>Obfuscation core by <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">Prometheus</a>.</li>
+            <li>Full transparency notes live in the <a href="dev-info.html">dev log</a>.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>prometheus xeno build / keep lua local / 2026</p>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "webobfuscator",
+  "version": "1.0.0",
+  "description": "Web UI for running the Prometheus Lua obfuscator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "lua",
+    "obfuscator",
+    "prometheus"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
