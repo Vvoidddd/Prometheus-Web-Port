@@ -19,6 +19,8 @@ const REMOTE_APP_VERSION_URL =
   "https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt";
 const REMOTE_APP_VERSION_HTML =
   "https://github.com/Vvoidddd/Prometheus-Web-Port/blob/main/version.txt";
+const REMOTE_APP_VERSION_API =
+  "https://api.github.com/repos/Vvoidddd/Prometheus-Web-Port/contents/version.txt";
 const REMOTE_APP_ZIP_URL =
   "https://codeload.github.com/Vvoidddd/Prometheus-Web-Port/zip/refs/heads/main";
 const REMOTE_PROM_TAGS_PAGE = "https://github.com/prometheus-lua/Prometheus/tags";
@@ -27,6 +29,10 @@ const UPDATE_DIR = path.join(ROOT_DIR, "updates");
 const GITHUB_HEADERS = {
   "User-Agent": "Prometheus-Web-Port/1.0",
   Accept: "application/vnd.github+json",
+};
+const GITHUB_RAW_HEADERS = {
+  "User-Agent": "Prometheus-Web-Port/1.0",
+  Accept: "text/plain",
 };
 const GITHUB_HTML_HEADERS = {
   "User-Agent": "Prometheus-Web-Port/1.0",
@@ -239,8 +245,7 @@ async function checkForUpdates() {
     readVersionFile(PROM_VERSION_FILE, "unknown"),
   ];
 
-  const remoteAppVersion =
-    (await fetchRemoteVersionSafe(REMOTE_APP_VERSION_URL)) || localApp;
+  const remoteAppVersion = (await fetchRemoteVersionSafe()) || localApp;
   const promRemote = await fetchPrometheusRemoteVersionSafe();
   const latestProm = promRemote || localProm;
 
@@ -259,24 +264,39 @@ async function checkForUpdates() {
   };
 }
 
-async function fetchRemoteVersionSafe(url) {
+async function fetchRemoteVersionSafe() {
   try {
-    return await fetchRemoteVersion(url);
+    return await fetchRemoteVersion();
   } catch {
     return null;
   }
 }
 
-async function fetchRemoteVersion(url) {
-  const res = await fetch(url, { headers: GITHUB_HEADERS });
-  if (res.ok) {
-    return (await res.text()).trim();
+async function fetchRemoteVersion() {
+  const apiRes = await fetch(REMOTE_APP_VERSION_API, { headers: GITHUB_HEADERS });
+  if (apiRes.ok) {
+    const payload = await apiRes.json();
+    if (payload && payload.content) {
+      const buffer = Buffer.from(payload.content, payload.encoding || "base64");
+      const version = buffer.toString("utf8").trim();
+      if (version) {
+        return version;
+      }
+    }
+  }
+
+  const rawRes = await fetch(REMOTE_APP_VERSION_URL, { headers: GITHUB_RAW_HEADERS });
+  if (rawRes.ok) {
+    const version = (await rawRes.text()).trim();
+    if (version) {
+      return version;
+    }
   }
 
   // fallback to HTML page parsing when raw file is unavailable
   const htmlRes = await fetch(REMOTE_APP_VERSION_HTML, { headers: GITHUB_HTML_HEADERS });
   if (!htmlRes.ok) {
-    throw new Error(`Failed to fetch remote version (${res.status}/${htmlRes.status})`);
+    throw new Error(`Failed to fetch remote version (${rawRes.status}/${htmlRes.status})`);
   }
   const html = await htmlRes.text();
   const match = html.match(/>(\d+\.\d+(?:\.\d+)?)</);
