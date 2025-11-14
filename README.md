@@ -7,7 +7,7 @@ the temp files are shredded.
 ## Requirements
 
 - Node.js 18+ (for `fetch`, `fs/promises`, and native `stream/promises`)
-- Lua 5.1 binary on `PATH` (override with `LUA_BIN=/path/to/lua`)
+- (Optional) Lua 5.2 runtime; the built-in runner can download it automatically.
 - Prometheus sources unpacked in `./Prometheus-master` (or use the built-in updater)
 
 ## Getting started
@@ -27,11 +27,13 @@ optionally toggle pretty-printing, and click **Obfuscate**. Logs from the Promet
 - Keyboard shortcuts: `Ctrl/⌘ + Enter` (run), `Ctrl/⌘ + Shift + L` (load sample), `Ctrl/⌘ + Shift + C` (copy result).
 - Dual editor status bars (line/char counts) and synchronized syntax highlighting for both source and output panes.
 - Classic logbook mirrors the CLI output exactly as Prometheus prints it.
+- Built-in Lua runner (with automated SourceForge downloads) lives under the editors so you can sanity-check snippets without leaving the page.
+- Six layout templates (Classic, Compact, Stacked, Focus, Wide, Minimal) + the settings page let you reshape the UI without touching CSS.
 
 ## Versioning & updates
 
-- Local Web Port version lives in `version.txt` (currently `1.4`).
-- Prometheus core version lives in `prometheus-version.txt` (currently `v0.2.6`).
+- Local Web Port version lives in `version.txt` (currently `1.6`).
+- Prometheus core version lives in `prometheus-version.txt`.
 - The UI calls `/api/check-updates` on load. That endpoint fetches:
   - `https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt` (or the GitHub HTML fallback) for the latest UI build.
   - `https://github.com/prometheus-lua/Prometheus/tags` and parses the newest `vX.X.X` tag.
@@ -50,7 +52,10 @@ All update downloads are saved under `./updates` so you can inspect or archive t
 | GET | `/api/version` | Returns local UI + Prometheus versions. |
 | GET | `/api/check-updates` | Checks remote sources and reports update availability. |
 | POST | `/api/download-app-update` | Downloads the latest Web Port zip into `./updates`. |
-| POST | `/api/update-prometheus` | Downloads + installs the newest Prometheus release. |
+| POST | /api/update-prometheus | Downloads + installs the newest Prometheus release. |
+| GET | /api/lua-status | Returns whether the standalone Lua runtime is installed plus the expected version. |
+| POST | /api/install-lua | Detects the OS, downloads the appropriate Lua 5.2.4 build from SourceForge, and extracts it into ./lua-runtime. |
+| POST | /api/run-lua | Runs arbitrary Lua snippets through the downloaded runtime and returns stdout/stderr. |
 
 ## Privacy stance
 
@@ -60,3 +65,5 @@ There is no telemetry, no analytics, and no hidden calls beyond the explicit upd
 - Update requests only target GitHub endpoints listed earlier and save downloaded archives to `./updates` for inspection.
 - Session storage is local-only (`localStorage`), and you can clear it from the UI at any time via “Reset session”.
 - To audit the behavior, read `server.js` (Express routes + update/downloader helpers) and `public/app.js` (front-end wiring + autosave logic).
+
+

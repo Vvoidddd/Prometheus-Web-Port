@@ -186,6 +186,27 @@
         </div>
       </section>
 
+      <section class="card lua-runner">
+        <header class="panel-head">
+          <div>
+            <p class="micro">local lua runner</p>
+            <h2>Test Lua scripts</h2>
+          </div>
+          <div class="runner-actions">
+            <button class="btn btn--ghost" id="luaSetupBtn" type="button">Install runtime</button>
+            <button class="btn btn--solid" id="luaRunnerBtn" type="button">Run Lua</button>
+          </div>
+        </header>
+        <textarea
+          id="luaRunnerInput"
+          spellcheck="false"
+          class="runner-input"
+          placeholder="-- quick Lua sandbox&#10;print('hello from the embedded runtime')"
+        ></textarea>
+        <pre class="lua-log" id="luaRunnerOutput">awaiting run...</pre>
+        <p class="microtext" id="luaStatus">Runtime status unknown.</p>
+      </section>
+
       <section class="callouts">
         <article class="card">
           <h3>API surface</h3>

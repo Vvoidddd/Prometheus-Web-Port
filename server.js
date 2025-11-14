@@ -6,6 +6,7 @@ const fsSync = require("fs");
 const { spawn } = require("child_process");
 const { pipeline } = require("stream/promises");
 const AdmZip = require("adm-zip");
+const tar = require("tar");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,18 @@ const GITHUB_RAW_HEADERS = {
 const GITHUB_HTML_HEADERS = {
   "User-Agent": "Prometheus-Web-Port/1.0",
   Accept: "text/html",
+};
+const LUA_VERSION = "5.2.4";
+const LUA_SOURCEFORGE_BASE =
+  "https://downloads.sourceforge.net/project/luabinaries/5.2.4/Tools%20Executables";
+const LUA_RUNTIME_DIR = path.join(ROOT_DIR, "lua-runtime");
+const LUA_RUNTIME_BIN = path.join(
+  LUA_RUNTIME_DIR,
+  process.platform === "win32" ? "lua.exe" : "lua"
+);
+const LUA_DOWNLOAD_HEADERS = {
+  "User-Agent": "Prometheus-Web-Port/1.0",
+  Accept: "*/*",
 };
 
 const AVAILABLE_PRESETS = ["Minify", "Weak", "Medium", "Strong"];
@@ -141,7 +154,7 @@ app.post("/api/download-app-update", async (_, res) => {
 
 app.post("/api/update-prometheus", async (_, res) => {
   try {
-    const { latest } = await fetchPrometheusRemoteVersion();
+    const latest = await fetchPrometheusRemoteVersion();
     if (!latest) {
       return res.status(500).json({ error: "Unable to resolve latest Prometheus tag." });
     }
@@ -163,6 +176,59 @@ app.post("/api/update-prometheus", async (_, res) => {
   } catch (error) {
     console.error("Prometheus update failed", error);
     res.status(500).json({ error: error.message || "Unable to update Prometheus core" });
+  }
+});
+
+app.get("/api/lua-status", async (_, res) => {
+  const installed = await luaRuntimeExists();
+  res.json({
+    installed,
+    binary: installed ? LUA_RUNTIME_BIN : null,
+    version: LUA_VERSION,
+  });
+});
+
+app.post("/api/install-lua", async (_, res) => {
+  try {
+    const binary = await installLuaRuntime();
+    res.json({
+      installed: true,
+      binary,
+      version: LUA_VERSION,
+      message: "Lua runtime downloaded.",
+    });
+  } catch (error) {
+    console.error("Lua install failed", error);
+    res.status(500).json({ error: error.message || "Unable to install Lua runtime" });
+  }
+});
+
+app.post("/api/run-lua", async (req, res) => {
+  const { source = "" } = req.body || {};
+  if (!source.trim()) {
+    return res.status(400).json({ error: "Lua source is required." });
+  }
+  let tempDir;
+  try {
+    const luaBinary = await ensureLuaRuntime();
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "lua-runner-"));
+    const scriptPath = path.join(tempDir, "runner.lua");
+    await fs.writeFile(scriptPath, source, "utf8");
+    const result = await spawnAsync(luaBinary, [scriptPath], {
+      cwd: ROOT_DIR,
+      processName: "Lua runtime",
+    });
+    res.json({
+      stdout: result.stdout.trim(),
+      stderr: result.stderr.trim(),
+    });
+  } catch (error) {
+    console.error("Lua runner failed", error);
+    res.status(500).json({ error: error.message || "Unable to run Lua code" });
+  } finally {
+    if (tempDir) {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   }
 });
 
@@ -205,6 +271,7 @@ async function runPrometheus({ source, preset, luaVersion, prettyPrint }) {
 
   const { stdout, stderr } = await spawnAsync(LUA_BIN, args, {
     cwd: ROOT_DIR,
+    processName: "Prometheus",
   });
 
   let obfuscated = "";
@@ -326,8 +393,9 @@ async function fetchPrometheusRemoteVersionSafe() {
   }
 }
 
-async function downloadFile(url, destination) {
-  const response = await fetch(url, { headers: GITHUB_HEADERS });
+async function downloadFile(url, destination, options = {}) {
+  const { headers = GITHUB_HEADERS } = options;
+  const response = await fetch(url, { headers });
   if (!response.ok || !response.body) {
     throw new Error(`Failed to download file (${response.status})`);
   }
@@ -375,9 +443,98 @@ async function installPrometheusFromTag(tag) {
   }
 }
 
+async function ensureLuaRuntime() {
+  if (await luaRuntimeExists()) {
+    return LUA_RUNTIME_BIN;
+  }
+  return installLuaRuntime();
+}
+
+async function installLuaRuntime() {
+  const meta = resolveLuaArchive();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "lua-install-"));
+  const archivePath = path.join(tempDir, meta.filename);
+  try {
+    const downloadUrl = `${LUA_SOURCEFORGE_BASE}/${meta.filename}?via=direct`;
+    await downloadFile(downloadUrl, archivePath, { headers: LUA_DOWNLOAD_HEADERS });
+    await extractLuaArchive(meta, archivePath, tempDir);
+    const candidate = await findLuaExecutable(tempDir);
+    if (!candidate) {
+      throw new Error("Lua binary was not found inside the downloaded archive.");
+    }
+    await fs.mkdir(LUA_RUNTIME_DIR, { recursive: true });
+    await fs.copyFile(
+      candidate,
+      process.platform === "win32"
+        ? path.join(LUA_RUNTIME_DIR, "lua.exe")
+        : path.join(LUA_RUNTIME_DIR, "lua")
+    );
+    await fs.chmod(LUA_RUNTIME_BIN, 0o755);
+    return LUA_RUNTIME_BIN;
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+function resolveLuaArchive() {
+  const platform = process.platform;
+  const arch = os.arch();
+  if (platform === "win32") {
+    return {
+      filename: arch === "ia32" ? "lua-5.2.4_Win32_bin.zip" : "lua-5.2.4_Win64_bin.zip",
+      type: "zip",
+    };
+  }
+  if (platform === "darwin") {
+    return { filename: "lua-5.2.4_MacOS1011_bin.tar.gz", type: "tar" };
+  }
+  if (platform === "linux") {
+    return {
+      filename: arch === "x64" ? "lua-5.2.4_Linux515_64_bin.tar.gz" : "lua-5.2.4_Linux32_bin.tar.gz",
+      type: "tar",
+    };
+  }
+  throw new Error(`Automatic Lua install is not supported on ${platform}.`);
+}
+
+async function extractLuaArchive(meta, archivePath, extractDir) {
+  if (meta.type === "zip") {
+    const zip = new AdmZip(archivePath);
+    zip.extractAllTo(extractDir, true);
+    return;
+  }
+  await tar.x({ cwd: extractDir, file: archivePath });
+}
+
+async function findLuaExecutable(dir) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const nested = await findLuaExecutable(entryPath);
+      if (nested) return nested;
+      continue;
+    }
+    if (/lua(?:52)?(?:\.exe)?$/i.test(entry.name)) {
+      return entryPath;
+    }
+  }
+  return null;
+}
+
+async function luaRuntimeExists() {
+  try {
+    await fs.access(LUA_RUNTIME_BIN, fsSync.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function spawnAsync(command, args, options = {}) {
+  const { processName = "Process", ...spawnOptions } = options;
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, options);
+    const child = spawn(command, args, spawnOptions);
     let stdout = "";
     let stderr = "";
 
@@ -396,7 +553,7 @@ function spawnAsync(command, args, options = {}) {
     child.on("close", (code) => {
       if (code !== 0) {
         const error = new Error(
-          `Prometheus exited with code ${code}${stderr ? `: ${stderr}` : ""}`
+          `${processName} exited with code ${code}${stderr ? `: ${stderr}` : ""}`
         );
         error.stdout = stdout;
         error.stderr = stderr;

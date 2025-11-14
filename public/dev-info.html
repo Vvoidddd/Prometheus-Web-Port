@@ -62,7 +62,8 @@
           <li><strong>Temp files</strong> - `/api/obfuscate` writes the source to a random folder under your OS temp directory, calls `lua ./Prometheus-master/cli.lua`, reads the generated output, then deletes the folder.</li>
           <li><strong>Logging</strong> - Stdout/stderr from the Prometheus process stream back to the browser untouched.</li>
           <li><strong>Updates</strong> - Update endpoints fetch version data from GitHub, download zips into `./updates`, and replace `./Prometheus-master` when asked.</li>
-          <li><strong>Version tracking</strong> - The UI reads `version.txt` (currently 1.5) and `prometheus-version.txt` locally, while remote comparisons use <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with a GitHub HTML fallback) and the Prometheus tags page.</li>
+          <li><strong>Version tracking</strong> - The UI reads `version.txt` (currently 1.6) and `prometheus-version.txt` locally, while remote comparisons use <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with a GitHub HTML fallback) and the Prometheus tags page.</li>
+          <li><strong>Lua runner</strong> - `/api/lua-status`, `/api/install-lua`, and `/api/run-lua` manage a portable Lua 5.2.4 runtime downloaded per OS from SourceForge, rename the binary to `lua.exe` (or `lua` on UNIX), and execute ad-hoc scripts in their own temp directories.</li>
           <li><strong>No hidden services</strong> - There are no outbound requests besides the explicit GitHub checks above.</li>
         </ul>
 
@@ -104,7 +105,7 @@ async function runPrometheus({ source, preset, luaVersion, prettyPrint }) {
       <section class="card">
         <h2>Update mechanics</h2>
         <p>
-          <strong>Version 1.5</strong> is stored in <code>version.txt</code>. The UI hits
+          <strong>Version 1.6</strong> is stored in <code>version.txt</code>. The UI hits
           <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with an automatic fallback to the HTML view) whenever you load the page. If a newer version exists, you can download the latest source zip directly from GitHub without leaving the UI.
         </p>
         <p>
@@ -224,6 +225,20 @@ function restoreSession() {
           <li><strong>Syntax highlight out of sync?</strong> Scroll both editors once—JS resynces the overlay automatically.</li>
           <li><strong>Permission issues?</strong> Ensure the process can write to OS temp directories and to `./updates`.</li>
         </ul>
+      </section>
+
+      <section class="card">
+        <h2>Layout gallery</h2>
+        <p>Six layout presets ship with the console; pick them from the Settings &gt; Layout dropdown and the entire page reflows instantly.</p>
+        <ul>
+          <li><strong>Classic Grid</strong> &mdash; hero, updates, and workbench follow the default stacked cards.</li>
+          <li><strong>Compact</strong> &mdash; tighter gaps, condensed padding, and denser stats for laptop screens.</li>
+          <li><strong>Stacked</strong> &mdash; hero, updates, runner, and workbench flow vertically for portrait monitors.</li>
+          <li><strong>Focus</strong> &mdash; splits the canvas so the workbench dominates the left column while hero/updates sit on the right.</li>
+          <li><strong>Wide Canvas</strong> &mdash; hero + system live side-by-side with runner tucked beneath the workbench.</li>
+          <li><strong>Minimal</strong> &mdash; removes shadows/borders for a flat, document-style surface.</li>
+        </ul>
+        <p>Layouts are stored under <code>prom-web-layout</code>; switching presets from Settings is the only supported way to move boxes around now.</p>
       </section>
 
       <section class="card">

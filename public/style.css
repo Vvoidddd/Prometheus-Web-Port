@@ -78,6 +78,7 @@ body {
   color: var(--accent-strong);
 }
 
+
 .site-shell {
   max-width: 1200px;
   margin: 0 auto;
@@ -96,6 +97,7 @@ body {
 }
 
 .hero {
+  grid-area: hero;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
@@ -158,6 +160,7 @@ body {
 }
 
 .system {
+  grid-area: system;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.5rem;
@@ -304,6 +307,7 @@ body {
 }
 
 .workbench {
+  grid-area: workbench;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
@@ -608,7 +612,51 @@ textarea::placeholder {
   font-size: 0.85rem;
 }
 
+.lua-runner {
+  grid-area: lua;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.runner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.lua-runner textarea {
+  color: var(--text);
+  background: #040404;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  padding: 1rem;
+  min-height: 180px;
+  font-family: "Space Mono", monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.lua-log {
+  margin: 0;
+  min-height: 140px;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: #030303;
+  font-family: "Space Mono", monospace;
+  font-size: 0.85rem;
+  overflow-y: auto;
+  color: var(--accent);
+}
+
+.lua-runner .microtext {
+  margin: 0;
+}
+
 .callouts {
+  grid-area: callouts;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
@@ -705,82 +753,124 @@ textarea::placeholder {
 }
 
 /* Layout variants */
+:root[data-layout="classic"] .site-shell {
+  display: flex;
+  flex-direction: column;
+}
+
 :root[data-layout="compact"] .site-shell {
-  gap: 1.3rem;
+  gap: 1.1rem;
 }
 
 :root[data-layout="compact"] .card {
-  padding: 1.5rem;
+  padding: 1.3rem;
 }
 
 :root[data-layout="compact"] .workbench {
   gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+:root[data-layout="compact"] .system {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 :root[data-layout="compact"] .hero__stats div {
-  padding: 0.85rem;
+  padding: 0.7rem;
 }
 
-:root[data-layout="compact"] .update-row {
-  padding: 0.8rem 0;
+:root[data-layout="stacked"] .site-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-:root[data-layout="stacked"] .hero,
-:root[data-layout="stacked"] .system,
-:root[data-layout="stacked"] .workbench,
-:root[data-layout="stacked"] .callouts {
+:root[data-layout="stacked"] .hero {
+  order: 1;
+}
+
+:root[data-layout="stacked"] .system {
+  order: 2;
   grid-template-columns: 1fr;
 }
 
-:root[data-layout="stacked"] .hero__stats {
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+:root[data-layout="stacked"] .lua-runner {
+  order: 3;
+}
+
+:root[data-layout="stacked"] .workbench {
+  order: 4;
+  grid-template-columns: 1fr;
+}
+
+:root[data-layout="stacked"] .callouts {
+  order: 5;
 }
 
 :root[data-layout="stacked"] .masthead {
   text-align: left;
 }
 
+:root[data-layout="stacked"] .hero__stats {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
 :root[data-layout="wide"] .site-shell {
-  max-width: 1460px;
+  display: grid;
+  max-width: 1500px;
+  grid-template-columns: minmax(420px, 1.7fr) minmax(320px, 1fr);
+  grid-template-areas:
+    "hero system"
+    "workbench system"
+    "lua system"
+    "callouts callouts";
+  gap: 1.5rem;
 }
 
 :root[data-layout="wide"] .system {
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-self: stretch;
 }
 
 :root[data-layout="wide"] .workbench {
-  grid-template-columns: minmax(340px, 2fr) minmax(320px, 1.5fr);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 :root[data-layout="wide"] .hero__stats span {
   font-size: 2.4rem;
 }
 
+:root[data-layout="focus"] .site-shell {
+  display: grid;
+  grid-template-columns: minmax(380px, 1.1fr) minmax(460px, 1.9fr);
+  grid-template-areas:
+    "workbench hero"
+    "workbench system"
+    "workbench lua"
+    "callouts callouts";
+  gap: 1.5rem;
+}
+
 :root[data-layout="focus"] .workbench {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-:root[data-layout="focus"] .workbench__panel:first-child {
-  order: 2;
-}
-
-:root[data-layout="focus"] .workbench__panel:last-child {
-  order: 1;
+  grid-template-columns: 1fr;
+  align-self: stretch;
 }
 
 :root[data-layout="focus"] .system {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 :root[data-layout="focus"] .hero {
-  grid-template-columns: 1fr;
+  align-self: flex-start;
+}
+
+:root[data-layout="minimal"] .site-shell {
+  gap: 1.2rem;
 }
 
 :root[data-layout="minimal"] .card,
 :root[data-layout="minimal"] .log,
-:root[data-layout="minimal"] .theme-preview {
+:root[data-layout="minimal"] .theme-preview,
+:root[data-layout="minimal"] .lua-log {
   box-shadow: none;
   background: var(--bg-alt);
 }
@@ -791,6 +881,11 @@ textarea::placeholder {
 
 :root[data-layout="minimal"] .masthead {
   border-bottom: none;
+}
+
+:root[data-layout="minimal"] .lua-runner textarea {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 720px) {

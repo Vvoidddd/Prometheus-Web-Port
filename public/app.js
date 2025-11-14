@@ -17,6 +17,11 @@ const promVersionEl = document.getElementById("promVersion");
 const updateAppBtn = document.getElementById("updateAppBtn");
 const updatePromBtn = document.getElementById("updatePromBtn");
 const updateStatusEl = document.getElementById("updateStatus");
+const luaRunnerInput = document.getElementById("luaRunnerInput");
+const luaRunnerOutput = document.getElementById("luaRunnerOutput");
+const luaRunnerBtn = document.getElementById("luaRunnerBtn");
+const luaSetupBtn = document.getElementById("luaSetupBtn");
+const luaStatusEl = document.getElementById("luaStatus");
 
 let totalFilesObfuscated = 0;
 let totalLinesProcessed = 0;
@@ -90,6 +95,7 @@ async function bootstrap() {
   syncHighlight(sourceInput, sourceHighlight);
   syncHighlight(outputArea, resultHighlight);
   refreshVersionPanel();
+  initLuaRunner();
 }
 
 async function loadPresets() {
@@ -361,6 +367,113 @@ function setUpdateStatus(message, state = "info") {
     <span class="status-dot ${indicatorClass} status-dot--static"></span>
     <span class="status-message">${safeMessage}</span>
   `;
+}
+
+function initLuaRunner() {
+  if (!luaRunnerBtn || !luaRunnerInput) return;
+  luaRunnerBtn.addEventListener("click", handleLuaRun);
+  if (luaSetupBtn) {
+    luaSetupBtn.addEventListener("click", handleLuaSetup);
+  }
+  refreshLuaStatus();
+}
+
+async function refreshLuaStatus() {
+  if (!luaStatusEl) return;
+  try {
+    const res = await fetch("/api/lua-status");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Status check failed");
+    const message = data.installed
+      ? `Lua ${data.version} runtime ready.`
+      : "Lua runtime missing. Install it to run scripts locally.";
+    luaStatusEl.textContent = message;
+    luaStatusEl.classList.toggle("error", !data.installed);
+    if (luaRunnerBtn) {
+      luaRunnerBtn.disabled = !data.installed;
+    }
+    if (luaSetupBtn) {
+      luaSetupBtn.disabled = data.installed;
+    }
+  } catch (error) {
+    luaStatusEl.textContent = `Lua status error: ${error.message}`;
+    luaStatusEl.classList.add("error");
+    if (luaRunnerBtn) {
+      luaRunnerBtn.disabled = true;
+    }
+    if (luaSetupBtn) {
+      luaSetupBtn.disabled = false;
+    }
+  }
+}
+
+async function handleLuaSetup() {
+  if (!luaSetupBtn) return;
+  try {
+    luaSetupBtn.disabled = true;
+    luaSetupBtn.textContent = "Installing...";
+    luaStatusEl.textContent = "Downloading Lua runtime...";
+    const res = await fetch("/api/install-lua", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Install failed");
+    luaStatusEl.textContent = data.message || "Runtime installed.";
+  } catch (error) {
+    luaStatusEl.textContent = `Install failed: ${error.message}`;
+    luaStatusEl.classList.add("error");
+  } finally {
+    if (luaSetupBtn) {
+      luaSetupBtn.textContent = "Install runtime";
+    }
+    await refreshLuaStatus();
+  }
+}
+
+async function handleLuaRun() {
+  if (!luaRunnerInput || luaRunnerBtn?.disabled) return;
+  const source = luaRunnerInput.value || "";
+  if (!source.trim()) {
+    luaStatusEl.textContent = "Enter Lua code to run.";
+    luaStatusEl.classList.add("error");
+    return;
+  }
+  try {
+    if (luaRunnerBtn) {
+      luaRunnerBtn.disabled = true;
+      luaRunnerBtn.textContent = "Running...";
+    }
+    setLuaRunnerOutput("Executing...");
+    const res = await fetch("/api/run-lua", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Lua runner failed");
+    const output = [
+      data.stdout ? `STDOUT:\n${data.stdout}` : "",
+      data.stderr ? `STDERR:\n${data.stderr}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+    setLuaRunnerOutput(output || "Lua finished with no output.");
+    luaStatusEl.textContent = "Lua execution completed.";
+    luaStatusEl.classList.remove("error");
+  } catch (error) {
+    setLuaRunnerOutput("");
+    luaStatusEl.textContent = `Lua run error: ${error.message}`;
+    luaStatusEl.classList.add("error");
+  } finally {
+    if (luaRunnerBtn) {
+      luaRunnerBtn.disabled = false;
+      luaRunnerBtn.textContent = "Run Lua";
+    }
+  }
+}
+
+function setLuaRunnerOutput(value) {
+  if (!luaRunnerOutput) return;
+  luaRunnerOutput.textContent = value;
 }
 
 bootstrap();

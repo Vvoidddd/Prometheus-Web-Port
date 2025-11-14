@@ -12,12 +12,12 @@
   ];
 
   const LAYOUTS = [
-    { value: "classic", label: "Classic Grid", description: "Balanced grids with cards side by side." },
-    { value: "compact", label: "Compact", description: "Tighter gaps and condensed panels." },
-    { value: "stacked", label: "Stacked", description: "Single-column layout for narrow screens." },
-    { value: "wide", label: "Wide Canvas", description: "Extra width and breathing room." },
-    { value: "focus", label: "Editor Focus", description: "Workbench first with stretched editor." },
-    { value: "minimal", label: "Minimal", description: "Flat cards, no shadows, subdued chrome." },
+    { value: "classic", label: "Classic Grid", description: "Default hero + workbench stack." },
+    { value: "compact", label: "Compact", description: "Condensed padding and denser stats." },
+    { value: "stacked", label: "Stacked Column", description: "Everything flows vertically for portrait monitors." },
+    { value: "focus", label: "Editor Focus", description: "Workbench takes the left column, everything else on the right." },
+    { value: "wide", label: "Wide Canvas", description: "Hero + updates sit beside the workbench across two columns." },
+    { value: "minimal", label: "Minimal", description: "Flat panels with muted chrome and no shadows." },
   ];
 
   function getStoredTheme() {
