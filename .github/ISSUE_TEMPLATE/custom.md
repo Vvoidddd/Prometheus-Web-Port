@@ -1,3 +1,4 @@
+---
 name: "Issue: Error report"
 about: "Log errors with clear evidence and reproduction steps."
 title: "Error: <brief summary>"
