@@ -161,13 +161,20 @@ body {
   gap: 1.5rem;
 }
 
+.update-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .update-panel__header h2 {
   margin: 0;
 }
 
 .update-panel__header p {
   color: var(--muted);
-  margin: 0.4rem 0 1rem;
+  margin: 0.4rem 0 0;
 }
 
 .update-row {
@@ -191,6 +198,47 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+
+.code-block {
+  background: #050505;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  font-family: "Space Mono", monospace;
+  font-size: 0.85rem;
+  color: #b2c1ff;
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.code-block code {
+  display: block;
+  white-space: pre;
+}
+
+.utility-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.utility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.microtext {
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+
+.microtext.error {
+  color: var(--danger);
 }
 
 .workbench {
@@ -274,6 +322,12 @@ button.tag {
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease;
   font-family: "Space Mono", monospace;
+}
+
+.btn--sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
 }
 
 .btn:disabled {
@@ -398,13 +452,21 @@ textarea:focus {
 
 .code-highlight {
   position: absolute;
-  inset: 1.9rem 1.2rem 0.6rem;
+  inset: 2.4rem 1.2rem 1rem;
   font-family: "Space Mono", monospace;
   font-size: 0.9rem;
   color: rgba(241, 245, 255, 0.4);
   white-space: pre-wrap;
   pointer-events: none;
   z-index: 1;
+}
+
+.editor__status {
+  font-family: "Space Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .hl-keyword {

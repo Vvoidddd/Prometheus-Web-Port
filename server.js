@@ -17,18 +17,31 @@ const APP_VERSION_FILE = path.join(ROOT_DIR, "version.txt");
 const PROM_VERSION_FILE = path.join(ROOT_DIR, "prometheus-version.txt");
 const REMOTE_APP_VERSION_URL =
   "https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt";
+const REMOTE_APP_VERSION_HTML =
+  "https://github.com/Vvoidddd/Prometheus-Web-Port/blob/main/version.txt";
 const REMOTE_APP_ZIP_URL =
   "https://codeload.github.com/Vvoidddd/Prometheus-Web-Port/zip/refs/heads/main";
-const REMOTE_PROM_TAGS_URL = "https://api.github.com/repos/prometheus-lua/Prometheus/tags?per_page=1";
+const REMOTE_PROM_TAGS_PAGE = "https://github.com/prometheus-lua/Prometheus/tags";
 const REMOTE_PROM_ZIP_BASE = "https://codeload.github.com/prometheus-lua/Prometheus/zip/refs/tags";
 const UPDATE_DIR = path.join(ROOT_DIR, "updates");
 const GITHUB_HEADERS = {
   "User-Agent": "Prometheus-Web-Port/1.0",
   Accept: "application/vnd.github+json",
 };
+const GITHUB_HTML_HEADERS = {
+  "User-Agent": "Prometheus-Web-Port/1.0",
+  Accept: "text/html",
+};
 
 const AVAILABLE_PRESETS = ["Minify", "Weak", "Medium", "Strong"];
 const LUA_VERSIONS = ["Lua51", "LuaU"];
+
+app.use((_, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(ROOT_DIR, "public")));
@@ -226,22 +239,10 @@ async function checkForUpdates() {
     readVersionFile(PROM_VERSION_FILE, "unknown"),
   ];
 
-  let remoteAppVersion = localApp;
-  try {
-    remoteAppVersion = await fetchRemoteVersion(REMOTE_APP_VERSION_URL);
-  } catch (error) {
-    console.warn("Unable to fetch remote Web Port version:", error.message);
-  }
-
-  let latestProm = localProm;
-  try {
-    const promRemote = await fetchPrometheusRemoteVersion();
-    if (promRemote.latest) {
-      latestProm = promRemote.latest;
-    }
-  } catch (error) {
-    console.warn("Unable to fetch Prometheus tags:", error.message);
-  }
+  const remoteAppVersion =
+    (await fetchRemoteVersionSafe(REMOTE_APP_VERSION_URL)) || localApp;
+  const promRemote = await fetchPrometheusRemoteVersionSafe();
+  const latestProm = promRemote || localProm;
 
   return {
     app: {
@@ -258,24 +259,51 @@ async function checkForUpdates() {
   };
 }
 
+async function fetchRemoteVersionSafe(url) {
+  try {
+    return await fetchRemoteVersion(url);
+  } catch {
+    return null;
+  }
+}
+
 async function fetchRemoteVersion(url) {
   const res = await fetch(url, { headers: GITHUB_HEADERS });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch remote version (${res.status})`);
+  if (res.ok) {
+    return (await res.text()).trim();
   }
-  return (await res.text()).trim();
+
+  // fallback to HTML page parsing when raw file is unavailable
+  const htmlRes = await fetch(REMOTE_APP_VERSION_HTML, { headers: GITHUB_HTML_HEADERS });
+  if (!htmlRes.ok) {
+    throw new Error(`Failed to fetch remote version (${res.status}/${htmlRes.status})`);
+  }
+  const html = await htmlRes.text();
+  const match = html.match(/>(\d+\.\d+(?:\.\d+)?)</);
+  if (!match) {
+    throw new Error("Unable to parse version from HTML response");
+  }
+  return match[1].trim();
 }
 
 async function fetchPrometheusRemoteVersion() {
-  const res = await fetch(REMOTE_PROM_TAGS_URL, { headers: GITHUB_HEADERS });
+  const res = await fetch(REMOTE_PROM_TAGS_PAGE, { headers: GITHUB_HTML_HEADERS });
   if (!res.ok) {
     throw new Error(`Failed to fetch Prometheus tags (${res.status})`);
   }
-  const data = await res.json();
-  const latest = Array.isArray(data) && data.length > 0 ? data[0].name : null;
-  return {
-    latest,
-  };
+  const html = await res.text();
+  const match =
+    html.match(/releases\/tag\/(v[\d.]+)/i) ||
+    html.match(/>(v\d+\.\d+\.\d+)</i);
+  return match ? match[1] : null;
+}
+
+async function fetchPrometheusRemoteVersionSafe() {
+  try {
+    return await fetchPrometheusRemoteVersion();
+  } catch {
+    return null;
+  }
 }
 
 async function downloadFile(url, destination) {

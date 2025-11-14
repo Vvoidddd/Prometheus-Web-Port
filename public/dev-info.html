@@ -28,33 +28,149 @@
       <section class="card">
         <h2>Pipeline overview</h2>
         <ol>
-          <li>Your Lua never leaves the browser until you click <em>Obfuscate</em>.</li>
-          <li>The Express backend receives your snippet on <code>localhost</code> only.</li>
-          <li>
-            It writes to a temp directory, runs <code>lua ./Prometheus-master/cli.lua</code> with the selected preset/Lua target,
-            and waits for Prometheus to finish.
-          </li>
-          <li>The output is streamed back, rendered in the editor, and the temp directory is shredded.</li>
-          <li>The log window mirrors stdout/stderr so you can see every CLI message.</li>
+          <li><strong>Browser only</strong> – Lua stays in memory until you hit <em>Obfuscate</em>.</li>
+          <li><strong>Local post</strong> – The Express backend receives the snippet over <code>http://localhost</code> only.</li>
+          <li><strong>Ephemeral files</strong> – The server writes to a random temp folder, runs <code>lua ./Prometheus-master/cli.lua</code> with your preset/target, and waits for Prometheus to exit.</li>
+          <li><strong>Cleanup</strong> – Output is streamed back and the temp folder (input/output/logs) is deleted with <code>fs.rm(..., { recursive: true, force: true })</code>.</li>
+          <li><strong>Log mirroring</strong> – Whatever Prometheus prints to stdout/stderr is piped back into the UI verbatim.</li>
         </ol>
+      </section>
+
+      <section class="card">
+        <h2>Server internals</h2>
+        <ul>
+          <li><strong>Routes</strong> - <code>server.js</code> registers `/api/presets`, `/api/obfuscate`, `/api/version`, `/api/check-updates`, `/api/download-app-update`, and `/api/update-prometheus`.</li>
+          <li><strong>Temp files</strong> - `/api/obfuscate` writes the source to a random folder under your OS temp directory, calls `lua ./Prometheus-master/cli.lua`, reads the generated output, then deletes the folder.</li>
+          <li><strong>Logging</strong> - Stdout/stderr from the Prometheus process stream back to the browser untouched.</li>
+          <li><strong>Updates</strong> - Update endpoints fetch version data from GitHub, download zips into `./updates`, and replace `./Prometheus-master` when asked.</li>
+          <li><strong>Version tracking</strong> - The UI reads `version.txt` (currently 1.4) and `prometheus-version.txt` locally, while remote comparisons use <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with a GitHub HTML fallback) and the Prometheus tags page.</li>
+          <li><strong>No hidden services</strong> - There are no outbound requests besides the explicit GitHub checks above.</li>
+        </ul>
+
+        <pre class="code-block"><code>// server.js (excerpt)
+app.post("/api/obfuscate", async (req, res) => {
+  const payload = sanitize(req.body);
+  const result = await runPrometheus(payload);
+  res.json(result);
+});
+
+async function runPrometheus({ source, preset, luaVersion, prettyPrint }) {
+  await ensurePrometheusInstalled();
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "prom-web-"));
+  const inputFile = path.join(tempDir, "input.lua");
+  const outputFile = path.join(tempDir, "output.lua");
+
+  await fs.writeFile(inputFile, source, "utf8");
+  const args = buildCliArgs(outputFile, preset, luaVersion, prettyPrint, inputFile);
+  const { stdout, stderr } = await spawnAsync(LUA_BIN, args, { cwd: ROOT_DIR });
+  const obfuscated = await fs.readFile(outputFile, "utf8");
+  await fs.rm(tempDir, { recursive: true, force: true });
+
+  return { output: obfuscated, stdout, stderr };
+}
+</code></pre>
+      </section>
+
+      <section class="card">
+        <h2>Network map</h2>
+        <ul>
+          <li><strong>Local host only</strong> - All obfuscation requests stay on `127.0.0.1`.</li>
+          <li><strong>Update checks</strong> - `raw.githubusercontent.com` and `api.github.com` only.</li>
+          <li><strong>Downloads</strong> - `.zip` archives from `codeload.github.com` saved into <code>./updates</code>.</li>
+          <li><strong>No telemetry</strong> - No analytics, beacons, or third-party SDKs exist in this project.</li>
+        </ul>
       </section>
 
       <section class="card">
         <h2>Update mechanics</h2>
         <p>
-          <strong>Version 1.2</strong> is stored in <code>version.txt</code>. The UI hits
-          <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> whenever you load the
-          page. If a newer version exists, you can download the latest source zip directly from GitHub without leaving the UI.
+          <strong>Version 1.4</strong> is stored in <code>version.txt</code>. The UI hits
+          <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> (with an automatic fallback to the HTML view) whenever you load the page. If a newer version exists, you can download the latest source zip directly from GitHub without leaving the UI.
         </p>
         <p>
-          The Prometheus core version is tracked in <code>prometheus-version.txt</code>. The update button calls out to the
-          official <code>prometheus-lua/Prometheus</code> tags feed, downloads the newest tag as a zip, extracts it, replaces
-          <code>Prometheus-master</code>, and updates the version file.
+          The Prometheus core version is tracked in <code>prometheus-version.txt</code>. The update button loads
+          <code>https://github.com/prometheus-lua/Prometheus/tags</code>, parses the newest <code>vX.X.X</code> tag, downloads
+          the corresponding zip, replaces <code>Prometheus-master</code>, and updates the version file.
         </p>
         <p>
           Both update flows run locally and only talk to GitHub. Nothing touches arbitrary endpoints, and the downloads live in
           <code>./updates</code> for you to inspect.
         </p>
+
+        <pre class="code-block"><code>// public/app.js (version panel)
+async function refreshVersionPanel() {
+  const res = await fetch("/api/check-updates");
+  const data = await res.json();
+  applyVersionState(data.app, appVersionEl, updateAppBtn);
+  applyVersionState(data.prometheus, promVersionEl, updatePromBtn);
+}
+
+async function handleAppUpdate() {
+  await fetch("/api/download-app-update", { method: "POST" });
+}
+
+async function handlePromUpdate() {
+  await fetch("/api/update-prometheus", { method: "POST" });
+}
+</code></pre>
+      </section>
+
+      <section class="card">
+        <h2>UI helper systems</h2>
+        <ul>
+          <li><strong>Autosave</strong> - Source, result, preset, and toggles persist in <code>localStorage</code>.</li>
+          <li><strong>Session assistant</strong> - Buttons for clear/load/reset/paste that never touch the network.</li>
+          <li><strong>Keyboard shortcuts</strong> - Ctrl/⌘+Enter (run), Ctrl/⌘+Shift+L (sample), Ctrl/⌘+Shift+C (copy result).</li>
+          <li><strong>Version panel</strong> - Surfaces update availability, download buttons, and manual re-check.</li>
+          <li><strong>Editor metrics</strong> - Real-time line + character counts for both panes.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Data stored in the browser</h2>
+        <ul>
+          <li><strong>Session key</strong> - `prometheus-web-port.session` (source/result text + preset + Lua target + pretty flag).</li>
+          <li><strong>Clipboard</strong> - Only accessed when you click “Paste clipboard” or “Copy”. Nothing is stored after the action completes.</li>
+          <li><strong>No cookies</strong> - The app does not set cookies or touch IndexedDB/service workers.</li>
+        </ul>
+        <p>Use the “Reset session” button to clear every saved value instantly.</p>
+
+        <pre class="code-block"><code>// public/app.js (session logic)
+const SESSION_KEY = "prometheus-web-port.session";
+
+function getSessionPayload() {
+  return {
+    source: sourceInput.value,
+    result: outputArea.value,
+    preset: presetSelect.value,
+    luaVersion: luaVersionSelect.value,
+    prettyPrint: prettyPrintToggle.checked,
+  };
+}
+
+function persistSession(data) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+}
+
+function restoreSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) return;
+  const data = JSON.parse(raw);
+  sourceInput.value = data.source;
+  // ...populate the rest, then sync highlights.
+}
+</code></pre>
+      </section>
+
+      <section class="card">
+        <h2>Hard refresh & cache clearing</h2>
+        <p>
+          Static files are dispatched with <code>Cache-Control: no-store</code>, but some browsers still keep older HTML/CSS in memory.
+          Use the button below to wipe every bit of local data created by this app (localStorage, sessionStorage, Cache API) and force a reload.
+        </p>
+        <button class="btn btn--ghost btn--sm" id="clearCacheBtn">Clear local data & reload</button>
+        <p class="microtext" id="clearCacheStatus">Nothing cleared yet.</p>
       </section>
 
       <section class="card">
@@ -64,6 +180,31 @@
           If you want to audit the behavior, start with <code>server.js</code> (Express routes + Prometheus spawn) and
           <code>public/app.js</code> (front-end wiring). The entire dependency tree is in <code>package-lock.json</code>.
         </p>
+        <ul>
+          <li>Temp directories live under your OS temp folder and are deleted after each run.</li>
+          <li>Session data lives in your browser only and can be wiped via “Reset session”.</li>
+          <li>Clipboard actions are opt-in and rely on the browser’s clipboard API.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>What to inspect if you're new here</h2>
+        <ul>
+          <li>Read <code>server.js</code> first. Every outbound call is defined there.</li>
+          <li>Open <code>public/app.js</code> to see exactly how the UI saves sessions, checks versions, and submits requests.</li>
+          <li>Cross-check <code>package-lock.json</code> to confirm the dependency tree (only Express + Adm-Zip).</li>
+          <li>Review the DevTools network panel when you click “Check versions” to verify only GitHub endpoints are hit.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Troubleshooting notes</h2>
+        <ul>
+          <li><strong>Lua binary missing?</strong> Set `LUA_BIN=/path/to/lua` when starting the server.</li>
+          <li><strong>Prometheus folder missing?</strong> Use the Prometheus update button or drop the sources into `./Prometheus-master`.</li>
+          <li><strong>Syntax highlight out of sync?</strong> Scroll both editors once—JS resynces the overlay automatically.</li>
+          <li><strong>Permission issues?</strong> Ensure the process can write to OS temp directories and to `./updates`.</li>
+        </ul>
       </section>
 
       <section class="card">
@@ -81,5 +222,39 @@
     <footer class="footer">
       <p>Stay local. Stay transparent.</p>
     </footer>
+    <script>
+      (function () {
+        const button = document.getElementById("clearCacheBtn");
+        const statusEl = document.getElementById("clearCacheStatus");
+        if (!button || !statusEl) return;
+
+        async function clearCaches() {
+          try {
+            if ("caches" in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((key) => caches.delete(key)));
+            }
+          } catch (error) {
+            console.warn("Cache clear failed", error);
+          }
+        }
+
+        button.addEventListener("click", async () => {
+          statusEl.textContent = "Clearing local data...";
+          statusEl.classList.remove("error");
+          try {
+            localStorage.clear();
+            sessionStorage.clear();
+          } catch (error) {
+            console.warn("Storage clear failed", error);
+          }
+          await clearCaches();
+          statusEl.textContent = "Local data cleared. Reloading...";
+          setTimeout(() => {
+            window.location.reload();
+          }, 300);
+        });
+      })();
+    </script>
   </body>
 </html>
