@@ -12,6 +12,11 @@ const sourceHighlight = document.getElementById("sourceHighlight");
 const resultHighlight = document.getElementById("resultHighlight");
 const statFilesEl = document.getElementById("statFiles");
 const statLinesEl = document.getElementById("statLines");
+const appVersionEl = document.getElementById("appVersion");
+const promVersionEl = document.getElementById("promVersion");
+const updateAppBtn = document.getElementById("updateAppBtn");
+const updatePromBtn = document.getElementById("updatePromBtn");
+const updateStatusEl = document.getElementById("updateStatus");
 
 let totalFilesObfuscated = 0;
 let totalLinesProcessed = 0;
@@ -99,6 +104,7 @@ async function bootstrap() {
   registerEvents();
   syncHighlight(sourceInput, sourceHighlight);
   syncHighlight(outputArea, resultHighlight);
+  refreshVersionPanel();
 }
 
 async function loadPresets() {
@@ -137,6 +143,13 @@ function registerEvents() {
   sourceInput.addEventListener("input", () => syncHighlight(sourceInput, sourceHighlight));
   sourceInput.addEventListener("scroll", () => syncScroll(sourceInput, sourceHighlight));
   outputArea.addEventListener("scroll", () => syncScroll(outputArea, resultHighlight));
+
+  if (updateAppBtn) {
+    updateAppBtn.addEventListener("click", handleAppUpdate);
+  }
+  if (updatePromBtn) {
+    updatePromBtn.addEventListener("click", handlePromUpdate);
+  }
 }
 
 async function handleObfuscate() {
@@ -236,9 +249,10 @@ function syncHighlight(textarea, highlightEl) {
 
 function syncScroll(textarea, highlightEl) {
   if (!highlightEl) return;
+  const layer = highlightEl.closest(".code-highlight") || highlightEl;
   const x = textarea.scrollLeft;
   const y = textarea.scrollTop;
-  highlightEl.style.transform = `translate(${-x}px, ${-y}px)`;
+  layer.style.transform = `translate(${-x}px, ${-y}px)`;
 }
 
 function escapeHTML(str) {
@@ -335,6 +349,78 @@ function updateStats(lineCount) {
   totalLinesProcessed += lineCount;
   if (statFilesEl) statFilesEl.textContent = totalFilesObfuscated.toLocaleString();
   if (statLinesEl) statLinesEl.textContent = totalLinesProcessed.toLocaleString();
+}
+
+async function refreshVersionPanel() {
+  if (!appVersionEl || !promVersionEl) return;
+  setUpdateStatus("Checking remote versions...");
+  try {
+    const res = await fetch("/api/check-updates");
+    if (!res.ok) throw new Error("Failed to check updates");
+    const data = await res.json();
+    const appNeedsUpdate = applyVersionState(data.app, appVersionEl, updateAppBtn);
+    const promNeedsUpdate = applyVersionState(data.prometheus, promVersionEl, updatePromBtn);
+    if (appNeedsUpdate || promNeedsUpdate) {
+      setUpdateStatus("Updates available. Use the buttons above to download.", false);
+    } else {
+      setUpdateStatus("All components are up to date.");
+    }
+  } catch (error) {
+    setUpdateStatus("Unable to reach update sources. Try again later.", true);
+  }
+}
+
+function applyVersionState(section, labelEl, buttonEl) {
+  if (!section || !labelEl) return false;
+  const current = section.current || "--";
+  const latest = section.latest || current;
+  const needsUpdate = Boolean(section.updateAvailable);
+  labelEl.textContent = needsUpdate
+    ? `${current} → ${latest} (update available)`
+    : `${current} (up to date)`;
+  labelEl.classList.toggle("tag--alert", needsUpdate);
+  if (buttonEl) {
+    buttonEl.disabled = !needsUpdate;
+  }
+  return needsUpdate;
+}
+
+async function handleAppUpdate() {
+  if (!updateAppBtn || updateAppBtn.disabled) return;
+  try {
+    updateAppBtn.disabled = true;
+    setUpdateStatus("Downloading latest Web Port build...");
+    const res = await fetch("/api/download-app-update", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Download failed");
+    setUpdateStatus(data.message || "Download complete.");
+  } catch (error) {
+    setUpdateStatus(`App update failed: ${error.message}`, true);
+  } finally {
+    refreshVersionPanel();
+  }
+}
+
+async function handlePromUpdate() {
+  if (!updatePromBtn || updatePromBtn.disabled) return;
+  try {
+    updatePromBtn.disabled = true;
+    setUpdateStatus("Updating Prometheus core...");
+    const res = await fetch("/api/update-prometheus", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Update failed");
+    setUpdateStatus(data.message || "Prometheus core updated.");
+  } catch (error) {
+    setUpdateStatus(`Prometheus update failed: ${error.message}`, true);
+  } finally {
+    refreshVersionPanel();
+  }
+}
+
+function setUpdateStatus(message, isError = false) {
+  if (!updateStatusEl) return;
+  updateStatusEl.textContent = message;
+  updateStatusEl.classList.toggle("error", Boolean(isError));
 }
 
 bootstrap();

@@ -3,78 +3,83 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Void - Dev Notes & Privacy</title>
+    <title>Prometheus Web Port · Dev Notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="page">
-      <header>
-        <h1>Dev Notes & Transparency</h1>
-        <p>
-          Built by <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">void</a>.
-          This page breaks down exactly what happens when you click <em>Obfuscate</em> and why no information is taken.
-        </p>
-        <div class="hero-links">
-          <a href="./">Back to the obfuscator</a>
-          <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">Prometheus source</a>
-        </div>
-      </header>
+    <div class="scanlines" aria-hidden="true"></div>
+    <header class="masthead">
+      <div class="masthead__title">Prometheus Web Port</div>
+      <p class="masthead__subtitle">Dev notes, privacy stance, and the full execution chain.</p>
+      <div class="masthead__links">
+        <a href="./">Back to console</a>
+        <a href="https://github.com/Vvoidddd/Prometheus-Web-Port" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">Prometheus repo</a>
+      </div>
+    </header>
 
-      <section>
-        <h2>How the tool works</h2>
+    <main class="site-shell">
+      <section class="card">
+        <h2>Pipeline overview</h2>
         <ol>
-          <li>You paste Lua code locally inside your browser.</li>
-          <li>The backend (Node + Express) receives your snippet over HTTPS on your own machine.</li>
+          <li>Your Lua never leaves the browser until you click <em>Obfuscate</em>.</li>
+          <li>The Express backend receives your snippet on <code>localhost</code> only.</li>
           <li>
-            The server writes the snippet to a temporary file, runs
-            <code>lua ./Prometheus-master/cli.lua</code> with your selected preset, and waits for Prometheus to finish.
+            It writes to a temp directory, runs <code>lua ./Prometheus-master/cli.lua</code> with the selected preset/Lua target,
+            and waits for Prometheus to finish.
           </li>
-          <li>The obfuscated output is streamed back and displayed instantly.</li>
-          <li>The temporary directory is deleted right after the response is sent.</li>
+          <li>The output is streamed back, rendered in the editor, and the temp directory is shredded.</li>
+          <li>The log window mirrors stdout/stderr so you can see every CLI message.</li>
         </ol>
       </section>
 
-      <section>
-        <h2>Privacy stance</h2>
+      <section class="card">
+        <h2>Update mechanics</h2>
         <p>
-          This project does <strong>not</strong> log, upload, or retain your scripts. Everything happens on the same machine you run the server on.
-          There are no analytics, trackers, remote calls, or hidden services - just Prometheus running locally.
+          <strong>Version 1.2</strong> is stored in <code>version.txt</code>. The UI hits
+          <code>https://raw.githubusercontent.com/Vvoidddd/Prometheus-Web-Port/main/version.txt</code> whenever you load the
+          page. If a newer version exists, you can download the latest source zip directly from GitHub without leaving the UI.
         </p>
         <p>
-          If you need to audit the behavior, the entire stack lives in this folder.
-          Skim <code>server.js</code> to see how Express spawns Prometheus and removes the temporary files.
+          The Prometheus core version is tracked in <code>prometheus-version.txt</code>. The update button calls out to the
+          official <code>prometheus-lua/Prometheus</code> tags feed, downloads the newest tag as a zip, extracts it, replaces
+          <code>Prometheus-master</code>, and updates the version file.
+        </p>
+        <p>
+          Both update flows run locally and only talk to GitHub. Nothing touches arbitrary endpoints, and the downloads live in
+          <code>./updates</code> for you to inspect.
         </p>
       </section>
 
-      <section>
+      <section class="card">
+        <h2>Privacy stance</h2>
+        <p>No tracking beacons, analytics, or remote logging exist in this project.</p>
+        <p>
+          If you want to audit the behavior, start with <code>server.js</code> (Express routes + Prometheus spawn) and
+          <code>public/app.js</code> (front-end wiring). The entire dependency tree is in <code>package-lock.json</code>.
+        </p>
+      </section>
+
+      <section class="card">
         <h2>Credits</h2>
         <ul>
+          <li>Interface + plumbing by <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">void</a>.</li>
           <li>
-            UI/UX and integration by <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">void</a>.
-          </li>
-          <li>
-            Obfuscation logic by <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">
-              Prometheus (Elias Oelschner)
-            </a>.
+            Prometheus obfuscator by
+            <a href="https://github.com/prometheus-lua/Prometheus" target="_blank" rel="noreferrer">Elias Oelschner</a>.
           </li>
         </ul>
       </section>
-
-      <section>
-        <h2>Questions?</h2>
-        <p>
-          Reach out via GitHub at
-          <a href="https://github.com/Vvoidddd" target="_blank" rel="noreferrer">@Vvoidddd</a>.
-          Suggestions, bug reports, or security concerns are always welcome.
-        </p>
-      </section>
-
-      <footer>
-        <p>&copy; <span id="year"></span> void. Stay curious, stay transparent.</p>
-      </footer>
     </main>
-    <script>
-      document.getElementById("year").textContent = new Date().getFullYear();
-    </script>
+
+    <footer class="footer">
+      <p>Stay local. Stay transparent.</p>
+    </footer>
   </body>
 </html>
