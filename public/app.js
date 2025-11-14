@@ -353,20 +353,22 @@ function updateStats(lineCount) {
 
 async function refreshVersionPanel() {
   if (!appVersionEl || !promVersionEl) return;
-  setUpdateStatus("Checking remote versions...");
+  setUpdateStatus("Checking For Updates...", "checking");
   try {
     const res = await fetch("/api/check-updates");
     if (!res.ok) throw new Error("Failed to check updates");
     const data = await res.json();
     const appNeedsUpdate = applyVersionState(data.app, appVersionEl, updateAppBtn);
     const promNeedsUpdate = applyVersionState(data.prometheus, promVersionEl, updatePromBtn);
-    if (appNeedsUpdate || promNeedsUpdate) {
-      setUpdateStatus("Updates available. Use the buttons above to download.", false);
-    } else {
-      setUpdateStatus("All components are up to date.");
-    }
+    const updatesLive = appNeedsUpdate || promNeedsUpdate;
+    setUpdateStatus(
+      updatesLive
+        ? "Updates available. Use the buttons above to download."
+        : "All components are up to date.",
+      updatesLive ? "warn" : "ok"
+    );
   } catch (error) {
-    setUpdateStatus("Unable to reach update sources. Try again later.", true);
+    setUpdateStatus("Unable to reach update sources. Try again later.", "error");
   }
 }
 
@@ -375,10 +377,13 @@ function applyVersionState(section, labelEl, buttonEl) {
   const current = section.current || "--";
   const latest = section.latest || current;
   const needsUpdate = Boolean(section.updateAvailable);
-  labelEl.textContent = needsUpdate
-    ? `${current} → ${latest} (update available)`
-    : `${current} (up to date)`;
-  labelEl.classList.toggle("tag--alert", needsUpdate);
+  const versionLine = needsUpdate ? `${current} → ${latest}` : current;
+  const statusText = needsUpdate ? "(Update Needed)" : "(up to date)";
+  const statusClass = needsUpdate ? "tag__status tag__status--alert" : "tag__status tag__status--ok";
+  labelEl.innerHTML = `
+    <span class="tag__value">${escapeHTML(versionLine)}</span>
+    <span class="${statusClass}">${statusText}</span>
+  `;
   if (buttonEl) {
     buttonEl.disabled = !needsUpdate;
   }
@@ -389,13 +394,13 @@ async function handleAppUpdate() {
   if (!updateAppBtn || updateAppBtn.disabled) return;
   try {
     updateAppBtn.disabled = true;
-    setUpdateStatus("Downloading latest Web Port build...");
+    setUpdateStatus("Downloading latest Web Port build...", "info");
     const res = await fetch("/api/download-app-update", { method: "POST" });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Download failed");
-    setUpdateStatus(data.message || "Download complete.");
+    setUpdateStatus(data.message || "Download complete.", "ok");
   } catch (error) {
-    setUpdateStatus(`App update failed: ${error.message}`, true);
+    setUpdateStatus(`App update failed: ${error.message}`, "error");
   } finally {
     refreshVersionPanel();
   }
@@ -405,22 +410,54 @@ async function handlePromUpdate() {
   if (!updatePromBtn || updatePromBtn.disabled) return;
   try {
     updatePromBtn.disabled = true;
-    setUpdateStatus("Updating Prometheus core...");
+    setUpdateStatus("Updating Prometheus core...", "info");
     const res = await fetch("/api/update-prometheus", { method: "POST" });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Update failed");
-    setUpdateStatus(data.message || "Prometheus core updated.");
+    setUpdateStatus(data.message || "Prometheus core updated.", "ok");
   } catch (error) {
-    setUpdateStatus(`Prometheus update failed: ${error.message}`, true);
+    setUpdateStatus(`Prometheus update failed: ${error.message}`, "error");
   } finally {
     refreshVersionPanel();
   }
 }
 
-function setUpdateStatus(message, isError = false) {
+function setUpdateStatus(message, state = "info") {
   if (!updateStatusEl) return;
-  updateStatusEl.textContent = message;
-  updateStatusEl.classList.toggle("error", Boolean(isError));
+  const safeMessage = escapeHTML(message || "");
+  const isError = state === "error";
+  updateStatusEl.classList.toggle("error", isError);
+  updateStatusEl.classList.toggle("is-checking", state === "checking");
+
+  if (state === "checking") {
+    updateStatusEl.innerHTML = `
+      <span class="status-message">${safeMessage}</span>
+      <span class="status-ellipsis" aria-hidden="true">
+        <span class="status-dot status-dot--ok"></span>
+        <span class="status-dot status-dot--warn"></span>
+        <span class="status-dot status-dot--alert"></span>
+      </span>
+    `;
+    return;
+  }
+
+  const indicatorClass = (() => {
+    switch (state) {
+      case "ok":
+        return "status-dot--ok";
+      case "warn":
+        return "status-dot--warn";
+      case "error":
+        return "status-dot--alert";
+      default:
+        return "status-dot--info";
+    }
+  })();
+
+  updateStatusEl.innerHTML = `
+    <span class="status-dot ${indicatorClass} status-dot--static"></span>
+    <span class="status-message">${safeMessage}</span>
+  `;
 }
 
 bootstrap();
